@@ -1,0 +1,13 @@
+{
+    "name": "whittle",
+    "version": "0.0.1-SNAPSHOT",
+    "main": "index.html",
+    "dependencies": {
+        "exif-js": "^2.3.0",
+        "exif-parser": "^0.1.12",
+        "file-url": "^2.0.2",
+        "recursive-readdir": "^2.2.2",
+        "sqlite3": "^4.0.0"
+    },
+    "license": "MIT"
+}

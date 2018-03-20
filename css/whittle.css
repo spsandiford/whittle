@@ -1,0 +1,27 @@
+#whittle-current-image {
+    height: 500px;
+}
+#whittle-current-image img {
+    height: 100%;
+    width: 100%;
+    object-fit: contain;
+}
+
+#whittle-previous-images {
+    height: 200px;
+}
+#whittle-previous-images img {
+    height: 100%;
+    width: 100%;
+    object-fit: contain;
+}
+
+#whittle-next-images {
+    height: 200px;
+}
+#whittle-next-images img {
+    height: 100%;
+    width: 100%;
+    object-fit: contain;
+}
+
