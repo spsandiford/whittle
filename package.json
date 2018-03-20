@@ -3,9 +3,11 @@
     "version": "0.0.1-SNAPSHOT",
     "main": "index.html",
     "dependencies": {
+        "blueimp-load-image": "^2.18.0",
         "exif-js": "^2.3.0",
         "exif-parser": "^0.1.12",
         "file-url": "^2.0.2",
+        "read-blob": "^1.1.0",
         "recursive-readdir": "^2.2.2",
         "sqlite3": "^4.0.0"
     },

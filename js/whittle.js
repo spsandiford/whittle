@@ -1,4 +1,6 @@
 var db;
+const path = require('path');
+const fs = require('fs');
 
 function updateCurrentCount() {
     db.get("select count(path) as currentCount from files where rank >= 1", function(err,row) {
@@ -104,6 +106,7 @@ function whittleImage() {
         db.run("update files set rank = 0 where rowid = ?",currentImage,function(err,row) {
             if (err == null) {
                 fillImages();
+                updateCurrentCount();
             }
         });
     }, function(reason) {
@@ -112,10 +115,30 @@ function whittleImage() {
 }
 
 function fillImage(target, imagepath) {
-    var newimgtag = '<img src="' + imagepath + '"></img>"';
-    //console.log(target + ' ' + newimgtag);
-    $(target).html(newimgtag);
-    $(target + " img").on('load',fixOrientation);
+    fs.readFile(imagepath, (err,buf) => {
+        if (err) throw err;
+        blob_buf = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
+        var blob_options = { type: 'image/jpeg' };
+        var blob = new Blob([blob_buf], blob_options );
+        var options = {};
+        options['canvas'] = true;
+        options['orientation'] = true;
+        if (target == "#whittle-current-image") {
+            options['maxWidth'] = 600;
+            options['maxHeight'] = 600;
+        } else {
+            options['maxWidth'] = 300;
+            options['maxHeight'] = 300;
+        }
+        loadImage(
+            blob,
+            function (imgtag) {
+                $(target).empty();
+                $(target).append(imgtag)
+            },
+            options
+        );
+    });
 }
 
 function fillPlaceHolder(target) {
@@ -198,8 +221,6 @@ function fixOrientation(ev) {
 }
 
 $(function() {
-    const path = require('path');
-    const fs = require('fs');
     const fileUrl = require('file-url');
     const sqlite3 = require('sqlite3').verbose();
     const recursive = require('recursive-readdir');
@@ -211,7 +232,7 @@ $(function() {
     recursive(rootdir, function(err, items) {
         var stmt = db.prepare("insert into files (path) values (?)");
         for (var i=0; i < items.length; i++) {
-            var file_path = fileUrl(items[i]);
+            var file_path = items[i];
             //console.log(file_path);
             if (file_path.endsWith(".jpg")) {
                 stmt.run(file_path);
