@@ -1,6 +1,7 @@
 var db;
 const path = require('path');
 const fs = require('fs');
+var undolist = [];
 
 function updateCurrentCount() {
     db.get("select count(path) as currentCount from files where rank >= 1", function(err,row) {
@@ -105,13 +106,39 @@ function whittleImage() {
         console.log("Whittling image, rowid " + currentImage);
         db.run("update files set rank = 0 where rowid = ?",currentImage,function(err,row) {
             if (err == null) {
+                undolist.push(currentImage);
                 fillImages();
                 updateCurrentCount();
+            } else {
+                console.log("Unable to whittle " + err);
             }
         });
     }, function(reason) {
         console.log(reason);
     });
+}
+
+function undoWhittle() {
+    if (undolist.length > 0) {
+        var toundo = undolist.pop();
+        db.run("update files set rank = 1 where rowid = ?",toundo,function(err,row) {
+            if (err == null) {
+                db.run("update pointers set item = ? where name = ?",toundo,"current",function(err,row) {
+                    if (err == null) {
+                        fillImages();
+                        updateCurrentCount();
+                    } else {
+                        console.log("Unable to set current pointer during undo " + toundo);
+                    }
+                });
+            } else {
+                console.log("Unable to undo whittle " + toundo);
+                undolist.push(toundo);
+            }
+        });
+    } else {
+        console.log("nothing to undo");
+    }
 }
 
 function fillImage(target, imagepath) {
@@ -258,5 +285,8 @@ $(function() {
             // d
         }
     });
+    $("#nav-left-button").on("click",navLeft);
+    $("#nav-right-button").on("click",navRight);
+    $("#undo-button").on("click",undoWhittle);
     
 });

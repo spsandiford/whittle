@@ -7,6 +7,7 @@
         "exif-js": "^2.3.0",
         "exif-parser": "^0.1.12",
         "file-url": "^2.0.2",
+        "open-iconic": "^1.1.1",
         "read-blob": "^1.1.0",
         "recursive-readdir": "^2.2.2",
         "sqlite3": "^4.0.0"
