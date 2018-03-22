@@ -151,11 +151,11 @@ function fillImage(target, imagepath) {
         options['canvas'] = true;
         options['orientation'] = true;
         if (target == "#whittle-current-image") {
-            options['maxWidth'] = 600;
-            options['maxHeight'] = 600;
+            options['maxWidth'] = 800;
+            options['maxHeight'] = 800;
         } else {
-            options['maxWidth'] = 300;
-            options['maxHeight'] = 300;
+            options['maxWidth'] = 400;
+            options['maxHeight'] = 400;
         }
         loadImage(
             blob,
@@ -176,6 +176,7 @@ function fillImages() {
     getCurrentPointer().then(function(currentImage) {
         // fill in the current image first
         db.get("select path from files where rowid = ? and rank > 0", currentImage, function(err, row) {
+            console.log("Current image is " + row.path);
             fillImage('#whittle-current-image', row.path);
         });
 
@@ -261,7 +262,10 @@ $(function() {
         for (var i=0; i < items.length; i++) {
             var file_path = items[i];
             //console.log(file_path);
-            if (file_path.endsWith(".jpg")) {
+            if (file_path.endsWith(".jpg")
+                || file_path.endsWith(".JPG")
+                || file_path.endsWith(".jpeg")
+                || file_path.endsWith(".JPEG")) {
                 stmt.run(file_path);
             }
         }
