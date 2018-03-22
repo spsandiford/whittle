@@ -157,9 +157,9 @@ function loadImageIntoBlob(imagepath) {
                 blob_buf = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
                 var blob_options;
                 if (imagepath.endsWith(".jpg")
-                    || file_path.endsWith(".JPG")
-                    || file_path.endsWith(".jpeg")
-                    || file_path.endsWith(".JPEG")) {
+                    || imagepath.endsWith(".JPG")
+                    || imagepath.endsWith(".jpeg")
+                    || imagepath.endsWith(".JPEG")) {
                     blob_options = { type: 'image/jpeg' };
                 } else if (imagepath.endsWith(".png")
                            || imagepath.endsWith(".PNG")) {
