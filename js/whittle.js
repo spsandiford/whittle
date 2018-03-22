@@ -2,6 +2,8 @@ var db;
 const path = require('path');
 const fs = require('fs');
 var undolist = [];
+var LRU = require('lru-cache');
+var blobCache = LRU(100);
 
 function updateCurrentCount() {
     db.get("select count(path) as currentCount from files where rank >= 1", function(err,row) {
@@ -141,12 +143,38 @@ function undoWhittle() {
     }
 }
 
+function loadImageIntoBlob(imagepath) {
+    return new Promise((resolve,reject) => {
+
+        // Check the cache for the image blob first
+        var cachedImage = blobCache.get(imagepath);
+        if (cachedImage != undefined) {
+            resolve(cachedImage);
+        } else {
+            fs.readFile(imagepath, (err,buf) => {
+                if (err) throw err;
+                // Load the buffer into a Blob
+                blob_buf = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
+                var blob_options;
+                if (imagepath.endsWith(".jpg")
+                    || file_path.endsWith(".JPG")
+                    || file_path.endsWith(".jpeg")
+                    || file_path.endsWith(".JPEG")) {
+                    blob_options = { type: 'image/jpeg' };
+                } else if (imagepath.endsWith(".png")
+                           || imagepath.endsWith(".PNG")) {
+                    blob_options = { type: 'image/png' };
+                }
+                var blob = new Blob([blob_buf], blob_options );
+                blobCache.set(imagepath,blob);
+                resolve(blob);
+            });
+        }
+    });
+}
+
 function fillImage(target, imagepath) {
-    fs.readFile(imagepath, (err,buf) => {
-        if (err) throw err;
-        blob_buf = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
-        var blob_options = { type: 'image/jpeg' };
-        var blob = new Blob([blob_buf], blob_options );
+    loadImageIntoBlob(imagepath).then(function(blob) {
         var options = {};
         options['canvas'] = true;
         options['orientation'] = true;
@@ -165,11 +193,33 @@ function fillImage(target, imagepath) {
             },
             options
         );
+    }, function(reason) {
+        console.log("Cannot load " + imagepath + " into " + target);
     });
 }
 
 function fillPlaceHolder(target) {
     fillImage(target, 'placeholder-blue.png');
+}
+
+// The wings are the canvases in the Previous and Next columns
+function fillWing(query, containers) {
+    db.all(query, function(err,rows) {
+        if (err) throw err;
+        var i=0;
+        for (i=0; i<rows.length; i++) {
+            if (i >= containers.length) {
+                // Just cache the image
+                loadImageIntoBlob(rows[i].path);
+            } else {
+                fillImage(containers[i],rows[i].path);
+            }
+        }
+        // Fill in the rest of the containers with placeholders
+        while (i < containers.length) {
+            fillPlaceHolder(containers[i]);
+        }
+    });
 }
 
 function fillImages() {
@@ -180,72 +230,16 @@ function fillImages() {
             fillImage('#whittle-current-image', row.path);
         });
 
-        // fill in the first previous image
-        db.get("select path,rowid from files where rowid < ? and rank > 0 order by rowid desc limit 1",
-                currentImage, function(err, row) {
+        // fill in the previous images (plus a little caching)
+        fillWing("select path from files where rowid < " + currentImage + " and rank > 0 order by rowid desc limit 3",
+            ['#whittle-previous-1', '#whittle-previous-2']);
 
-            var target1 = '#whittle-previous-1';
-            var target2 = '#whittle-previous-2';
-
-            if ((err == null) && (row != undefined)) {
-                fillImage(target1,row.path);
-                // fill in the second previous image
-                db.get("select path from files where rowid < ? and rank > 0 order by rowid desc limit 1",
-                        row.rowid, function(err2, row2) {
-                    if ((err == null) && (row2 != undefined)) {
-                        fillImage(target2, row2.path);
-                    } else {
-                        fillPlaceHolder(target2);
-                    }
-                });
-            } else {
-                fillPlaceHolder(target1);
-                fillPlaceHolder(target2);
-            }
-        });
-
-        // fill in the first next image
-        db.get("select path,rowid from files where rowid > ? and rank > 0 order by rowid asc limit 1",
-                currentImage, function(err, row) {
-
-            var target1 = '#whittle-next-1';
-            var target2 = '#whittle-next-2';
-
-            if ((err == null) && (row != undefined)) {
-                fillImage(target1,row.path);
-                // fill in the second next image
-                db.get("select path from files where rowid > ? and rank > 0 order by rowid asc limit 1",
-                        row.rowid, function(err2, row2) {
-                    if ((err == null) && (row2 != undefined)) {
-                        fillImage(target2, row2.path);
-                    } else {
-                        fillPlaceHolder(target2);
-                    }
-                });
-            } else {
-                fillPlaceHolder(target1);
-                fillPlaceHolder(target2);
-            }
-        });
+        // fill in the next images (plus a little caching)
+        fillWing("select path from files where rowid > " + currentImage + " and rank > 0 order by rowid asc limit 3",
+            ['#whittle-next-1', '#whittle-next-2']);
     }, function(reason) {
+        console.log("Unable to get current pointer " + reason);
     });
-
-}
-
-function fixOrientation(ev) {
-    //console.log('image load handler');
-    //console.log(ev);
-    EXIF.getData(ev.target, function() {
-        var orientation = EXIF.getTag(this, "Orientation");
-        //console.log("orientation: " + orientation);
-        if(orientation == 6) {
-            $(ev.target).css('transform', 'rotate(90deg)')
-        } else if (orientation == 3) {
-            $(ev.target).css('transform', 'rotate(180deg)')
-        } else if (orientation == 8) {
-            $(ev.target).css('transform', 'rotate(-90deg)')
-        }
-    }); 
 }
 
 $(function() {
