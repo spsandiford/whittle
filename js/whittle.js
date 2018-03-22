@@ -69,6 +69,18 @@ function getCurrentPointer() {
         });
     });
 }
+
+function fastForward() {
+    // Select the last item in files
+    db.get("select max(rowid) as last from files where rank >= 1", function(err,row) {
+        if (err) throw(err);
+        db.run("update pointers set item = ? where name = ?",row.last,"current",function(err){
+            if (err) throw(err);
+            fillImages();
+        });
+    });
+}
+
 function navRight() {
     getCurrentPointer().then(function(currentImage) {
         db.get("select rowid from files where rowid > ? and rank > 0",currentImage,function(err,row) {
@@ -83,6 +95,17 @@ function navRight() {
         });
     }, function(reason) {
         console.log(reason);
+    });
+}
+
+function rewind() {
+    // Select the first item in files
+    db.get("select min(rowid) as first from files where rank >= 1", function(err,row) {
+        if (err) throw(err);
+        db.run("update pointers set item = ? where name = ?",row.first,"current",function(err){
+            if (err) throw(err);
+            fillImages();
+        });
     });
 }
 
@@ -199,6 +222,7 @@ function fillImage(target, imagepath) {
 }
 
 function fillPlaceHolder(target) {
+    console.log("Putting placeholder image in " + target);
     fillImage(target, 'placeholder-blue.png');
 }
 
@@ -206,7 +230,7 @@ function fillPlaceHolder(target) {
 function fillWing(query, containers) {
     db.all(query, function(err,rows) {
         if (err) throw err;
-        var i=0;
+        var i;
         for (i=0; i<rows.length; i++) {
             if (i >= containers.length) {
                 // Just cache the image
@@ -216,7 +240,7 @@ function fillWing(query, containers) {
             }
         }
         // Fill in the rest of the containers with placeholders
-        while (i < containers.length) {
+        for( ; i < containers.length; i++ ) {
             fillPlaceHolder(containers[i]);
         }
     });
@@ -283,8 +307,10 @@ $(function() {
             // d
         }
     });
+    $("#nav-rewind").on("click",rewind);
     $("#nav-left-button").on("click",navLeft);
     $("#nav-right-button").on("click",navRight);
+    $("#nav-fast-forward").on("click",fastForward);
     $("#undo-button").on("click",undoWhittle);
     
 });
