@@ -273,7 +273,7 @@ $(function() {
     var rootdir = nw.App.argv[0];
     console.log("root directory " + rootdir);
     db = new sqlite3.Database(path.join(rootdir,'whittle.db'));
-    db.run("create table if not exists files (path TEXT UNIQUE PRIMARY KEY, rank INTEGER DEFAULT 1)");
+    db.run("create table if not exists files (path TEXT UNIQUE PRIMARY KEY COLLATE NOCASE, rank INTEGER DEFAULT 1)");
     db.run("create table if not exists pointers (name TEXT UNIQUE PRIMARY KEY, item INTEGER DEFAULT 1)");
     recursive(rootdir, function(err, items) {
         var stmt = db.prepare("insert into files (path) values (?)");
